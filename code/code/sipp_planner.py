@@ -13,21 +13,29 @@
 
 #UNSURE IF THIS IS BEST WAY
 class State():
-    def __init__(self, loc, cfg):
+    def __init__(self, loc, timestep, cfg, parent = None):
         self.loc = loc
+        self.timestep = timestep
         self.cfg = cfg
+
 
 class CFG_MAP():
     def __init__(self):
-        self.cfg_map = {}
-
-    
-
+        self.cfg_dict = {}
+   
+    #If we want to get a particular configuration at a location, we first check if its been initialized already. If not, we create it and return the new configuration
+    def get_cfg(self, loc):
+        if loc not in self.cfg_dict:
+            self.cfg_dict[loc] = CFG()
+        return self.cfg_dict[loc]
+        
 
 class CFG():
     def __init__(self):
         #NEED TO HANDLE splitting intervals
         self.intervals = [(0, float('inf'))]
+        self.f = float('inf')
+        self.g = float('inf')
     
     #function will receive a time interval and split safe intervals accordingly
     #SEEMS TO WORK
@@ -100,23 +108,6 @@ def move(loc, my_map):
     #will return 4 directions we can move in. I believe wait actions are handled implicitly in the way successor nodes are generated
     return valid_moves
   
-def get_successors(state, cfg_list):
-    #Need to implement algorithm as defined in the paper + add configurations to list as needed
-    successors = []
-    valid_moves = move(state['loc'])
-
-    for move in valid_moves:
-        #check if configuration exists, if not we create a new one for the possible successor location
-        if state.loc not in cfg_list:
-            cfg_list[state.loc] = CFG()
-
-        m_time = 1
-        start_time = state['timestep'] + m_time
-        end_t = state.interval[1] + m_time
-
-
-
-    pass
 
 def get_heuristic(loc, goal_loc):
     pass
@@ -129,36 +120,64 @@ def update_time():
     pass
 
 
+class SIPP():
+    def __init__(self, my_map, start_loc, goal_loc, agent):
+        self.my_map = my_map
+        self.start_loc = start_loc
+        self.goal_loc = goal_loc
+        self.agent = agent
+
+        self.cfg_map = CFG_MAP()
+
+    def get_path_sipp(self):
+        #initialize the configuration dict. keys will be (x,y) tuple, value is dict with associated data. We'll update the configuration list as we expand new nodes
+        edge_cost = 1
+        open_list = []
+        closed_list = {}
+        
+        #each node has a location, associated configuration, and parent. Time?
+        root_state = State(self.start_loc, 0, self.cfg_map.get_cfg(self.start_loc), None)
 
 
-def get_path_sipp(my_map, start_loc, goal_loc, agent, cfg_list):
-    #initialize the configuration dict. keys will be (x,y) tuple, value is dict with associated data. We'll update the configuration list as we expand new nodes
-    edge_cost = 1
-    open_list = []
-    closed_list = {}
-    
-    if start_loc not in cfg_list:
-        cfg_list[start_loc] = CFG()
-    root_state = State(start_loc)
+        push_queue(open_list, root_state)
+        while len(open_list) > 0:
+            curr = pop_queue(open_list)
+            if curr.loc == self.goal_loc:
+                return self.reconstruct_path(curr)
 
 
-    push_queue(open_list, root_state)
-    while len(open_list) > 0:
-        curr = pop_queue(open_list)
-        if curr['loc'] == goal_loc:
-            return get_path(curr)
+            successors = self.get_successors(curr)
+            for successor in successors:
+                if successor not in open_list: #or closed list?
+                    successor['g_val'] = float('inf')
+                    successor['f_val'] = successor['g_val']
+                if successor['g_val'] > curr['g_val'] + edge_cost:
+                    successor['g_val'] = curr['g_val'] + edge_cost
+                    successor['parent'] = curr
+                    update_time(successor) #unsure
+                    successor['f_val'] = successor['g_val'] + successor['h_val']
+                    push_queue(open_list, successor)
+
+    def get_successors(self, state):
+    #Need to implement algorithm as defined in the paper + add configurations to list as needed
+        successors = []
+        valid_moves = move(state['loc'])
+
+        for move in valid_moves:
+            m_time = 1 #Time to execute a step. On grid, t = 1
+            start_t = state.time + m_time
 
 
-        successors = get_successors(curr, cfg_list)
-        for successor in successors:
-            if successor not in open_list: #or closed list?
-                successor['g_val'] = float('inf')
-                successor['f_val'] = successor['g_val']
-            if successor['g_val'] > curr['g_val'] + edge_cost:
-                successor['g_val'] = curr['g_val'] + edge_cost
-                successor['parent'] = curr
-                update_time(successor) #unsure
-                successor['f_val'] = successor['g_val'] + successor['h_val']
-                push_queue(open_list, successor)
+            cfg = self.cfg_map.get_cfg(move)
+            for interval in cfg.intervals:
 
-    return None
+
+            
+        
+
+
+
+        pass
+
+    def reconstruct_path(self):
+        pass
