@@ -12,19 +12,28 @@
 #Going to write a class for managing the configuration list and related functions for splitting configurations. This way I can share a single configuration list among a_star_sipp calls
 
 #UNSURE IF THIS IS BEST WAY
+import math
+import heapq
+
+
 class State():
-    def __init__(self, loc, timestep, cfg, parent = None):
+    def __init__(self, loc, timestep, interval, parent):
         self.loc = loc
         self.timestep = timestep
-        self.cfg = cfg
+        self.interval = interval
+        self.parent = parent
 
 
 class CFG_MAP():
-    def __init__(self):
+    def __init__(self, collision_list = None):
         self.cfg_dict = {}
-   
-    #If we want to get a particular configuration at a location, we first check if its been initialized already. If not, we create it and return the new configuration
+        if collision_list:
+            #set up collisions, will probably be a dict with locations as keys and a list of time intervals. Well iterate through the time intervals and call split
+            pass
+
     def get_cfg(self, loc):
+        #If a configuration already exists we return it, otherwise we generate a default configuration for the tile.
+        #This way we only deal with tiles that agents actually travel over
         if loc not in self.cfg_dict:
             self.cfg_dict[loc] = CFG()
         return self.cfg_dict[loc]
@@ -85,39 +94,14 @@ class CFG():
         print("result", self.intervals)       
 
 
-#Functions for pushing and popping from PQ, ordered by state F() values
-def push_queue(list, state):
-    pass
-def pop_queue(list):
-    pass
+#Helper functions for pushing and popping queue NEED TO CHANGE!!
+def push_node(open_list, node):
+    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
 
 
-def move(loc, my_map):
-    #Defining movement with respect to map. Going to move some functionality that in the single agent plannet would be in a_star into this function.
-    #it will return all the directions we're certain we can move to minus the configurations, which will be handled in getSuccessors as specified in the paper
-    directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
-    valid_moves = []
-    for i in range(len(directions)):
-        new_loc = loc[0] + directions[i][0], loc[1] + directions[i][1]
-        #Checking out of bounds condition and no static obstacles. Does not consider dynamic obstacles, will be handled elsewhere
-        if new_loc[0] < 0 or new_loc[0] >= len(my_map) or new_loc[1] < 0 or new_loc[1] >= len(my_map[0]):
-            continue
-        if my_map[new_loc[0]][new_loc[1]]:
-            continue
-        valid_moves.append(new_loc)
-    #will return 4 directions we can move in. I believe wait actions are handled implicitly in the way successor nodes are generated
-    return valid_moves
-  
-
-def get_heuristic(loc, goal_loc):
-    pass
-
-def get_path(state):
-    pass
-
-def update_time():
-    #unsure about implementation for this function atm.
-    pass
+def pop_node(open_list):
+    _, _, _, curr = heapq.heappop(open_list)
+    return curr
 
 
 class SIPP():
@@ -128,15 +112,38 @@ class SIPP():
         self.agent = agent
 
         self.cfg_map = CFG_MAP()
+    
+    #Going to use the line distance as my heuristic
+    def get_heuristic(self, loc):
+        return math.sqrt(pow(self.goal_loc[0] - self.loc[0], 2) + pow(self.goal_loc[1] - self.loc[1], 2))
+      
+    def move(self, loc):
+    #Defining movement with respect to map. Going to move some functionality that in the single agent plannet would be in a_star into this function.
+    #it will return all the directions we're certain we can move to minus the configurations, which will be handled in getSuccessors as specified in the paper
+        directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+        valid_moves = []
+        for i in range(len(directions)):
+            new_loc = loc[0] + directions[i][0], loc[1] + directions[i][1]
+            #Checking out of bounds condition and no static obstacles. Does not consider dynamic obstacles, will be handled elsewhere
+            if new_loc[0] < 0 or new_loc[0] >= len(self.my_map) or new_loc[1] < 0 or new_loc[1] >= len(self.my_map[0]):
+                continue
+            if self.my_map[new_loc[0]][new_loc[1]]:
+                continue
+            valid_moves.append(new_loc)
+        #will return 4 directions we can move in. I believe wait actions are handled implicitly in the way successor nodes are generated
+        return valid_moves
+  
 
+    
     def get_path_sipp(self):
         #initialize the configuration dict. keys will be (x,y) tuple, value is dict with associated data. We'll update the configuration list as we expand new nodes
         edge_cost = 1
         open_list = []
         closed_list = {}
         
-        #each node has a location, associated configuration, and parent. Time?
-        root_state = State(self.start_loc, 0, self.cfg_map.get_cfg(self.start_loc), None)
+        #for the root state we pick the first interval for the configuration at the nodes position
+        root_cfg = self.cfg_map.get_cfg(self.start_loc)
+        root_state = State(self.start_loc, 0, root_cfg.intervals[0], None)
 
 
         push_queue(open_list, root_state)
@@ -146,6 +153,7 @@ class SIPP():
                 return self.reconstruct_path(curr)
 
 
+            #DOUBLE CHECK THIS
             successors = self.get_successors(curr)
             for successor in successors:
                 if successor not in open_list: #or closed list?
@@ -164,20 +172,23 @@ class SIPP():
         valid_moves = move(state['loc'])
 
         for move in valid_moves:
-            m_time = 1 #Time to execute a step. On grid, t = 1
-            start_t = state.time + m_time
-
-
             cfg = self.cfg_map.get_cfg(move)
-            for interval in cfg.intervals:
 
 
-            
+            m_time = 1 #Time to execute a step. On grid, t = 1
+            start_t = state.timestep + m_time
+            end_t = state.interval[1]  + m_time # The end time of the states interval
         
+            for interval in cfg.intervals:
+                if interval[0] > end_t or interval[1] < start_t:
+                    continue
+                #Unsure about this, check file
+                t = max(start_t, interval[0])
+                succ = State(move, t, interval, state)
+                successors.append(succ)
 
+        return successors
 
-
-        pass
-
+    
     def reconstruct_path(self):
         pass
