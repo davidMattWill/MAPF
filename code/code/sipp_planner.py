@@ -17,12 +17,19 @@ import heapq
 
 
 class State():
-    def __init__(self, loc, timestep, interval, parent):
+    def __init__(self, loc, timestep, interval):
         self.loc = loc
         self.timestep = timestep
         self.interval = interval
-        self.parent = parent
 
+
+class CFG():
+    def __init__(self):
+        #NEED TO HANDLE splitting intervals
+        self.intervals = [(0, float('inf'))]
+        self.g = float('inf')
+        self.f = float('inf')
+        self.parent_state = None
 
 class CFG_MAP():
     def __init__(self, collision_list = None):
@@ -43,8 +50,7 @@ class CFG():
     def __init__(self):
         #NEED TO HANDLE splitting intervals
         self.intervals = [(0, float('inf'))]
-        self.f = float('inf')
-        self.g = float('inf')
+       
     
     #function will receive a time interval and split safe intervals accordingly
     #SEEMS TO WORK
@@ -95,13 +101,13 @@ class CFG():
 
 
 #Helper functions for pushing and popping queue NEED TO CHANGE!!
-def push_node(open_list, node):
-    heapq.heappush(open_list, (node['g_val'] + node['h_val'], node['h_val'], node['loc'], node))
+def push_pq(open_list, state):
+    heapq.heappush(open_list, state)
 
 
-def pop_node(open_list):
-    _, _, _, curr = heapq.heappop(open_list)
-    return curr
+def pop_pq(open_list):
+    _, _, _, curr_state = heapq.heappop(open_list)
+    return curr_state
 
 
 class SIPP():
@@ -143,29 +149,36 @@ class SIPP():
         
         #for the root state we pick the first interval for the configuration at the nodes position
         root_cfg = self.cfg_map.get_cfg(self.start_loc)
-        root_state = State(self.start_loc, 0, root_cfg.intervals[0], None)
-
-
-        push_queue(open_list, root_state)
+        root_state = State(self.start_loc, 
+                           0, 
+                           root_cfg.intervals[0])
+        root_state.g = 0
+        root_state.f = self.get_heuristic(self.start_loc)
+        push_pq(open_list, root_state)
+       
         while len(open_list) > 0:
-            curr = pop_queue(open_list)
-            if curr.loc == self.goal_loc:
-                return self.reconstruct_path(curr)
+            curr_state = pop_pq(open_list)
+            curr_cfg = self.cfg_map.get_cfg(curr_state.loc)
+            if curr_state.loc == self.goal_loc:
+                return self.reconstruct_path(curr_state)
 
 
-            #DOUBLE CHECK THIS
-            successors = self.get_successors(curr)
-            for successor in successors:
-                if successor not in open_list: #or closed list?
-                    successor['g_val'] = float('inf')
-                    successor['f_val'] = successor['g_val']
-                if successor['g_val'] > curr['g_val'] + edge_cost:
-                    successor['g_val'] = curr['g_val'] + edge_cost
-                    successor['parent'] = curr
-                    update_time(successor) #unsure
-                    successor['f_val'] = successor['g_val'] + successor['h_val']
-                    push_queue(open_list, successor)
+            successors = self.get_successors(curr_state)
+            ###UNSURE ABOUT THIS SECTION
+            for succ_state in successors:
+                #We need to check if succ is already in open
+                succ_cfg = self.cfg_map.get_cfg(succ_state.loc)
+                if succ_cfg.g > curr_cfg.g + edge_cost:
+                    succ_cfg.g = curr_cfg.g + edge_cost
+                    succ_cfg.parent_state = curr_state
 
+                succ_cfg.f = succ_cfg.g + self.get_heuristic(succ_state.loc)
+                ##this should have the ordering data for each state as its pushed
+                push_pq(open_list, (succ_cfg.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
+            ###
+        return None  
+
+           
     def get_successors(self, state):
     #Need to implement algorithm as defined in the paper + add configurations to list as needed
         successors = []
@@ -184,7 +197,7 @@ class SIPP():
                     continue
                 #Unsure about this, check file
                 t = max(start_t, interval[0])
-                succ = State(move, t, interval, state)
+                succ = State(move, t, interval)
                 successors.append(succ)
 
         return successors
