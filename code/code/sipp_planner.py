@@ -106,6 +106,10 @@ def pop_pq(open_list):
     _, _, _, curr_state = heapq.heappop(open_list)
     return curr_state
 
+def print_state(state):
+    print("loc: "+ state.loc, ", time: " + state.timestep + ", interval: " + state.interval)
+def print_cfg(cfg):
+    print("F: " + cfg.f + ", g: " + cfg.g + ", interval_list: " + cfg.interval_list + ", parent_loc: " + cfg.parent_state.loc)
 
 class SIPP():
     def __init__(self, my_map, start_loc, goal_loc, agent, collision_list):
@@ -126,7 +130,8 @@ class SIPP():
         directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
         valid_moves = []
         for i in range(len(directions)):
-            new_loc = loc[0] + directions[i][0], loc[1] + directions[i][1]
+            new_loc = (loc[0] + directions[i][0], loc[1] + directions[i][1])
+            print(new_loc)
             #Checking out of bounds condition and no static obstacles. Does not consider dynamic obstacles, will be handled elsewhere
             if new_loc[0] < 0 or new_loc[0] >= len(self.my_map) or new_loc[1] < 0 or new_loc[1] >= len(self.my_map[0]):
                 continue
@@ -142,7 +147,7 @@ class SIPP():
         #initialize the configuration dict. keys will be (x,y) tuple, value is dict with associated data. We'll update the configuration list as we expand new nodes
         edge_cost = 1
         open_list = []
-        visited_set = set()
+        #visited_set = set()
         
         #for the root state we pick the first interval for the configuration at the nodes position
         root_cfg = self.cfg_map.get_cfg(self.start_loc)
@@ -152,7 +157,7 @@ class SIPP():
         root_cfg.g = 0
         root_cfg.f = self.get_heuristic(self.start_loc)
         push_pq(open_list, (root_cfg.f, self.get_heuristic(root_state.loc), root_state.loc, root_state))
-       
+        """
         while len(open_list) > 0:
             curr_state = pop_pq(open_list)
             curr_cfg = self.cfg_map.get_cfg(curr_state.loc)
@@ -174,19 +179,39 @@ class SIPP():
                     push_pq(open_list, (succ_cfg.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
                     visited_set.add((succ_state.loc, succ_state.timestep))
             ###
-        return None  
+        """
+        while len(open_list) > 0:
+            curr_state = pop_pq(open_list)
+            curr_cfg = self.cfg_map.get_cfg(curr_state.loc)
+            
+            successors = self.get_successors(curr_state)
+            for succ_state in successors:
+                succ_cfg = self.cfg_map.get_cfg(succ_state.loc)
+                if succ_cfg.g > curr_cfg.g + edge_cost:
+                    succ_cfg.g = curr_cfg.g + edge_cost
+                    succ_cfg.parent_state = curr_state
+                    
+                    if succ_state.loc == self.goal_loc:
+                        print("found Path!")
+                        return self.reconstruct_path(succ_state)
+                       
+                    succ_cfg.f = succ_cfg.g + self.get_heuristic(succ_state.loc)
+                    push_pq(open_list, (succ_cfg.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
+        return None
+                    
+
 
            
     def get_successors(self, state):
     #Need to implement algorithm as defined in the paper + add configurations to list as needed
         successors = []
         valid_moves = self.move(state.loc)
-
+        m_time = 1 #Time to execute a step. On grid, t = 1
+        
         for mov in valid_moves:
             cfg = self.cfg_map.get_cfg(mov)
 
 
-            m_time = 1 #Time to execute a step. On grid, t = 1
             start_t = state.timestep + m_time
             end_t = state.interval[1]  + m_time # The end time of the states interval
         
@@ -221,6 +246,7 @@ class SIPP():
 
         
         return path[::-1]
+
 
 
 
