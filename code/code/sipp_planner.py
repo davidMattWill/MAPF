@@ -21,7 +21,9 @@ class State():
         self.loc = loc
         self.timestep = timestep
         self.interval = interval
-
+    #Unsure if i should include!
+    #def __lt__(self, other):
+        #return (self.loc, self.timestep, self.interval) < (other.loc, other.timestep, other.interval)
 
 class CFG():
     def __init__(self):
@@ -31,25 +33,6 @@ class CFG():
         self.f = float('inf')
         self.parent_state = None
 
-class CFG_MAP():
-    def __init__(self, collision_list = None):
-        self.cfg_dict = {}
-        if collision_list:
-            #set up collisions, will probably be a dict with locations as keys and a list of time intervals. Well iterate through the time intervals and call split
-            pass
-
-    def get_cfg(self, loc):
-        #If a configuration already exists we return it, otherwise we generate a default configuration for the tile.
-        #This way we only deal with tiles that agents actually travel over
-        if loc not in self.cfg_dict:
-            self.cfg_dict[loc] = CFG()
-        return self.cfg_dict[loc]
-        
-
-class CFG():
-    def __init__(self):
-        #NEED TO HANDLE splitting intervals
-        self.intervals = [(0, float('inf'))]
        
     
     #function will receive a time interval and split safe intervals accordingly
@@ -99,10 +82,24 @@ class CFG():
 
         print("result", self.intervals)       
 
+class CFG_MAP():
+    def __init__(self, collision_list = None):
+        self.cfg_dict = {}
+        if collision_list:
+            #set up collisions, will probably be a dict with locations as keys and a list of time intervals. Well iterate through the time intervals and call split
+            pass
+
+    def get_cfg(self, loc):
+        #If a configuration already exists we return it, otherwise we generate a default configuration for the tile.
+        #This way we only deal with tiles that agents actually travel over
+        if loc not in self.cfg_dict:
+            self.cfg_dict[loc] = CFG()
+        return self.cfg_dict[loc]
+
 
 #Helper functions for pushing and popping queue NEED TO CHANGE!!
-def push_pq(open_list, state):
-    heapq.heappush(open_list, state)
+def push_pq(open_list, state_dat):
+    heapq.heappush(open_list, state_dat)
 
 
 def pop_pq(open_list):
@@ -111,17 +108,17 @@ def pop_pq(open_list):
 
 
 class SIPP():
-    def __init__(self, my_map, start_loc, goal_loc, agent):
+    def __init__(self, my_map, start_loc, goal_loc, agent, collision_list):
         self.my_map = my_map
         self.start_loc = start_loc
         self.goal_loc = goal_loc
         self.agent = agent
 
-        self.cfg_map = CFG_MAP()
+        self.cfg_map = CFG_MAP(collision_list)
     
     #Going to use the line distance as my heuristic
     def get_heuristic(self, loc):
-        return math.sqrt(pow(self.goal_loc[0] - self.loc[0], 2) + pow(self.goal_loc[1] - self.loc[1], 2))
+        return math.sqrt(pow(self.goal_loc[0] - loc[0], 2) + pow(self.goal_loc[1] - loc[1], 2))
       
     def move(self, loc):
     #Defining movement with respect to map. Going to move some functionality that in the single agent plannet would be in a_star into this function.
@@ -145,16 +142,16 @@ class SIPP():
         #initialize the configuration dict. keys will be (x,y) tuple, value is dict with associated data. We'll update the configuration list as we expand new nodes
         edge_cost = 1
         open_list = []
-        closed_list = {}
+        visited_set = set()
         
         #for the root state we pick the first interval for the configuration at the nodes position
         root_cfg = self.cfg_map.get_cfg(self.start_loc)
         root_state = State(self.start_loc, 
                            0, 
                            root_cfg.intervals[0])
-        root_state.g = 0
-        root_state.f = self.get_heuristic(self.start_loc)
-        push_pq(open_list, root_state)
+        root_cfg.g = 0
+        root_cfg.f = self.get_heuristic(self.start_loc)
+        push_pq(open_list, (root_cfg.f, self.get_heuristic(root_state.loc), root_state.loc, root_state))
        
         while len(open_list) > 0:
             curr_state = pop_pq(open_list)
@@ -168,13 +165,14 @@ class SIPP():
             for succ_state in successors:
                 #We need to check if succ is already in open
                 succ_cfg = self.cfg_map.get_cfg(succ_state.loc)
-                if succ_cfg.g > curr_cfg.g + edge_cost:
-                    succ_cfg.g = curr_cfg.g + edge_cost
-                    succ_cfg.parent_state = curr_state
+                if(succ_state.loc, succ_state.timestep) not in visited_set:
+                    if succ_cfg.g > curr_cfg.g + edge_cost:
+                        succ_cfg.g = curr_cfg.g + edge_cost
+                        succ_cfg.parent_state = curr_state
 
-                succ_cfg.f = succ_cfg.g + self.get_heuristic(succ_state.loc)
-                ##this should have the ordering data for each state as its pushed
-                push_pq(open_list, (succ_cfg.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
+                    succ_cfg.f = succ_cfg.g + self.get_heuristic(succ_state.loc)
+                    push_pq(open_list, (succ_cfg.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
+                    visited_set.add((succ_state.loc, succ_state.timestep))
             ###
         return None  
 
@@ -182,10 +180,10 @@ class SIPP():
     def get_successors(self, state):
     #Need to implement algorithm as defined in the paper + add configurations to list as needed
         successors = []
-        valid_moves = move(state['loc'])
+        valid_moves = self.move(state.loc)
 
-        for move in valid_moves:
-            cfg = self.cfg_map.get_cfg(move)
+        for mov in valid_moves:
+            cfg = self.cfg_map.get_cfg(mov)
 
 
             m_time = 1 #Time to execute a step. On grid, t = 1
@@ -197,11 +195,33 @@ class SIPP():
                     continue
                 #Unsure about this, check file
                 t = max(start_t, interval[0])
-                succ = State(move, t, interval)
+                succ = State(mov, t, interval)
                 successors.append(succ)
 
         return successors
 
     
-    def reconstruct_path(self):
-        pass
+    def reconstruct_path(self, state):
+        path = []
+
+        curr_state = state
+        curr_cfg = self.cfg_map.get_cfg(curr_state.loc)
+        t = curr_state.timestep
+        path.append(curr_state.loc)
+
+        while(curr_state.loc != self.start_loc):
+            curr_state = curr_cfg.parent_state
+            curr_cfg = self.cfg_map.get_cfg(curr_state.loc)
+
+            #This is the time period which the agent is actually at a given loc
+            for i in range(curr_state.timestep, t):
+                path.append(curr_state.loc)
+            t = curr_state.timestep
+        
+
+        
+        return path[::-1]
+
+
+
+        

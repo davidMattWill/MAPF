@@ -31,17 +31,18 @@ class SIPP_PrioritizedSolver(object):
         start_time = timer.time()
         result = []
 
-        #configuration list is initially empty. The way prioritized planning will work is after each iteration we'll take the agents path and add configuration data for it
-        cfg_list = {}
+  
+        collision_list = {}
 
-        for i in range(self.num_of_agents):  # Find path for each agent
-            #generate path
-            path = sipp_planner.a_star_sipp(self.my_map, self.starts[i], self.goals[i], i)
+        #Right now there is no prioritized planning, each agent will find a path independently. Going to keep this way for testing
+        for i in range(self.num_of_agents):
+            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], i, collision_list)
+            path = planner.get_path_sipp()
+            print(path)
+            
             if path is None:
                 raise BaseException('No solutions')
             result.append(path)
-
-            #NEED TO APPEND PATH AS COLLISIONS TO CONFIGURATION LIST FOR THE NEXT AGENT
 
 
         self.CPU_time = timer.time() - start_time
@@ -52,5 +53,5 @@ class SIPP_PrioritizedSolver(object):
         print(result)
         
         
-        return None
+        return result
 

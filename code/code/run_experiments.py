@@ -113,8 +113,8 @@ if __name__ == '__main__':
         else:
             raise RuntimeError("Unknown solver!")
 
-        cost = get_sum_of_cost(paths)
-        result_file.write("{},{}\n".format(file, cost))
+        #cost = get_sum_of_cost(paths)
+        #result_file.write("{},{}\n".format(file, cost))
 
 
         if not args.batch:
