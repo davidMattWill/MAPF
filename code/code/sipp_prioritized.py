@@ -1,5 +1,6 @@
-import sipp_planner
+import sipp_planner_new
 import time as timer
+
 
 
 class SIPP_PrioritizedSolver(object):
@@ -22,6 +23,9 @@ class SIPP_PrioritizedSolver(object):
         #for goal in self.goals:
             #self.heuristics.append(compute_heuristics(my_map, goal))
 
+   
+   #The Way prioritized planning will work right now, is we'll keep a dict of collision intervals indexed by location. After each iteration we add the path of the previous agent
+   #to the dict and call an update fucnction in the CFG map which will split the intervals inside each planner. This is VERY cumbersome so i'll have to think of a more efficient way for the agents to share a planner instead
     def find_solution(self):
         """ Finds paths for all agents from their start locations to their goal locations."""
 
@@ -32,17 +36,29 @@ class SIPP_PrioritizedSolver(object):
         result = []
 
   
-        collision_list = {}
+        unsafe_interval_list = {}
 
         #Right now there is no prioritized planning, each agent will find a path independently. Going to keep this way for testing
         for i in range(self.num_of_agents):
-            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], i, collision_list)
+            planner = sipp_planner_new.SIPP(self.my_map, self.starts[i], self.goals[i], unsafe_interval_list)
             path = planner.get_path_sipp()
-            print(path)
+
             
             if path is None:
                 raise BaseException('No solutions')
             result.append(path)
+
+            
+            for i, loc in enumerate(path):
+                if loc not in unsafe_interval_list:
+                    unsafe_interval_list[loc] = []  
+                
+                if i == len(path) - 1:
+                    unsafe_interval_list[loc].append((i, float('inf')))
+                else:
+                    unsafe_interval_list[loc].append((i,i))
+        
+
 
 
         self.CPU_time = timer.time() - start_time
@@ -54,4 +70,4 @@ class SIPP_PrioritizedSolver(object):
         
         
         return result
-
+    

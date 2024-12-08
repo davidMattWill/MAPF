@@ -9,6 +9,7 @@ from visualize import Animation
 from single_agent_planner import get_sum_of_cost
 
 from sipp_prioritized import SIPP_PrioritizedSolver
+from sipp_cbs import SIPP_CBSSolver
 
 SOLVER = "CBS"
 
@@ -109,6 +110,10 @@ if __name__ == '__main__':
         elif args.solver == "sipp_prioritized":
             print("***Run SIPP Prioritized***")
             solver = SIPP_PrioritizedSolver(my_map, starts, goals)
+            paths = solver.find_solution()
+        elif args.solver == "sipp_cbs":
+            print("***Ruin SIPP CBS***")
+            solver = SIPP_CBSSolver(my_map, starts, goals)
             paths = solver.find_solution()
         else:
             raise RuntimeError("Unknown solver!")
