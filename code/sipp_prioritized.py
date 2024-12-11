@@ -1,4 +1,4 @@
-import sipp_planner_new
+import sipp_planner
 import time as timer
 from single_agent_planner import get_sum_of_cost
 
@@ -22,7 +22,7 @@ class SIPP_PrioritizedSolver(object):
 
         unsafe_interval_list = {}
         for i in range(self.num_of_agents):
-            planner = sipp_planner_new.SIPP(self.my_map, self.starts[i], self.goals[i], unsafe_interval_list)
+            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], unsafe_interval_list)
             path = planner.get_path_sipp()
 
             if path is None:
