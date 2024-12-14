@@ -1,6 +1,6 @@
-import sipp_planner
+import sipp_planner_alt as sipp_planner
 import time as timer
-from single_agent_planner import get_sum_of_cost
+from single_agent_planner import compute_heuristics, get_location, get_sum_of_cost
 
 
 
@@ -15,6 +15,10 @@ class SIPP_PrioritizedSolver(object):
 
         self.CPU_time = 0
 
+        self.heuristics = []
+        for goal in self.goals:
+            self.heuristics.append(compute_heuristics(my_map, goal))
+
     def find_solution(self):
         """ Finds paths for all agents from their start locations to their goal locations."""
         start_time = timer.time()
@@ -22,7 +26,7 @@ class SIPP_PrioritizedSolver(object):
 
         unsafe_interval_list = {}
         for i in range(self.num_of_agents):
-            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], unsafe_interval_list)
+            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], unsafe_interval_list)
             path = planner.get_path_sipp()
 
             if path is None:

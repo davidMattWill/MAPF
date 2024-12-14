@@ -1,22 +1,8 @@
 import math
 import heapq
 
+#MIGHT KEEP THIS VERSION INSTEAD!!!!
 
-
-class State():
-    ##############################
-    #           Class for managing Nodes (labelled States) for the safe interval search.
-    #           As the Search space is over 'safe' time intervals the fields that uniquely identify a state are (loc, interval)
-    #           The 'timestep' property is calculated by taking the minimum t of overlap between a State's interval and a parent's interval
-    def __init__(self, loc = (-1,-1), timestep = 0, interval = (0, float('inf'))):
-        self.loc = loc
-        self.timestep = timestep
-        self.interval = interval
-
-        self.g = float('inf')
-        self.f = float('inf')
-        self.parent_state = None
- 
 class State_Map():
     ##############################
     #           Class for managing existing states in the search tree. Maintained by a dictionary with key/val pair (loc, interval): State Object
@@ -26,10 +12,12 @@ class State_Map():
     def __init__(self):
         self.state_dict = {}
 
-    def get_state(self, loc, timestep, interval):
-        if (loc, interval) not in self.state_dict:
-            self.state_dict[(loc, interval)] = State(loc, timestep, interval)
-        return self.state_dict[(loc, interval)]
+    def get_state(self,cfg, interval, timestep):
+        if (cfg, interval) not in self.state_dict:
+            self.state_dict[(cfg, interval)] = {'cfg':cfg,
+                                                'timestep':timestep,
+                                                'interval':interval,}
+        return self.state_dict[(cfg, interval)]
     
     def clear_state(self, loc, interval):
         if (loc, interval) in self.state_dict:
@@ -40,8 +28,15 @@ class CFG():
     #           Class for managing the safe interval list of each (x,y) location on the map, initially [(0, inf)]. We call this a configuration.
     #           The split function takes an interval on time (t, t + i) and splits the existing to each end of the interval passed.
     #           For example if the only interval in the list is (0,inf), it would be split into (0, t-1) and (t+i+1, inf)       
-    def __init__(self):
+    def __init__(self, loc):
+        self.loc = loc
         self.intervals = [(0, float('inf'))]
+        self.g = float('inf')
+        self.f = float('inf')
+
+        self.parent_state = None
+        
+        
  
 
     def split(self, collision_interval):
@@ -102,11 +97,10 @@ class CFG_MAP():
             
     def get_cfg(self, loc):
         if loc not in self.cfg_dict:
-            self.cfg_dict[loc] = CFG()
+            self.cfg_dict[loc] = CFG(loc)
         return self.cfg_dict[loc]
     
     
-
 #Helper functions for managing the priority queue used in SIPP. The state_dat argument is a tuple ordered by (f, heuristic, loc, state)
 def push_pq(open_list, state_dat):
     heapq.heappush(open_list, state_dat)
@@ -155,11 +149,6 @@ class SIPP():
 
         self.cfg_map = CFG_MAP(unsafe_interval_list)
         self.state_map = State_Map()
- 
-   # def get_heuristic(self, loc):
-        #return math.sqrt(pow(self.goal_loc[0] - loc[0], 2) + pow(self.goal_loc[1] - loc[1], 2))
-    def get_heuristic(self, loc):
-        return self.h_vals[loc]
       
     def move(self, loc):
         directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
@@ -177,76 +166,78 @@ class SIPP():
         open_list = []
         
         root_cfg = self.cfg_map.get_cfg(self.start_loc)
-        root_state = self.state_map.get_state(self.start_loc, 0, root_cfg.intervals[0])
-        root_state.g = 0 
-        root_state.f = root_state.g + self.get_heuristic(root_state.loc)
-
-        push_pq(open_list, (root_state.f, self.get_heuristic(root_state.loc), root_state.loc, root_state))
+        root_cfg.g = 0
+        root_cfg.f = self.h_vals[self.start_loc]
+        root_state = self.state_map.get_state(root_cfg, root_cfg.intervals[0], 0)
+        push_pq(open_list, (root_cfg.f, self.h_vals[self.start_loc], self.start_loc, root_state))
         
   
 
         while len(open_list) > 0:
             curr_state = pop_pq(open_list)
-            #self.state_map.clear_state(curr_state.loc, curr_state.interval)
+            curr_cfg = curr_state['cfg']
             
-            if curr_state.loc == self.goal_loc and curr_state.interval[1] == float('inf'):
+            if curr_cfg.loc == self.goal_loc and curr_state['interval'][1] == float('inf'):
                 print("Found path!")
                 return self.reconstruct_path(curr_state)
             
             successors = self.get_successors(curr_state)
             for succ_state in successors:
-                if succ_state.g > curr_state.g + self.get_cost(curr_state, succ_state):
-                    succ_state.g = curr_state.g + self.get_cost(curr_state, succ_state)
-                    succ_state.parent_state = curr_state
+                succ_cfg = succ_state['cfg']
+                if succ_cfg.g > curr_cfg.g + self.get_cost(curr_state, succ_state):
+                    succ_cfg.g = curr_cfg.g + self.get_cost(curr_state, succ_state)
+                    succ_cfg.parent_state = curr_state
                     
                     self.updateTime(curr_state, succ_state)
-                    succ_state.f = succ_state.g + self.get_heuristic(succ_state.loc)
-                    push_pq(open_list, (succ_state.f, self.get_heuristic(succ_state.loc), succ_state.loc, succ_state))
+                    succ_cfg.f = succ_cfg.g + self.h_vals[succ_cfg.loc]
+                    push_pq(open_list, (succ_cfg.f, self.h_vals[succ_cfg.loc], succ_cfg.loc, succ_state))
 
         return None
     
     def get_successors(self, state):
         successors = []
-        valid_moves = self.move(state.loc)
+        valid_moves = self.move(state['cfg'].loc)
         m_time = 1 
         
         for mov in valid_moves:
             cfg = self.cfg_map.get_cfg(mov)
 
-
-            start_t = state.timestep + m_time
-            end_t = state.interval[1]  + m_time 
+            start_t = state['timestep'] + m_time
+            end_t = state['interval'][1]  + m_time 
         
             for interval in cfg.intervals:
                 if interval[0] > end_t or interval[1] < start_t:
                     continue
         
                 t = max(start_t, interval[0])
-                succ = self.state_map.get_state(mov, t, interval)
+                succ = self.state_map.get_state(cfg, interval, t)
                 successors.append(succ)
         return successors
     
     def get_cost(self, state, succ_state):
-        return abs(succ_state.timestep - state.timestep)
+        return abs(succ_state['timestep'] - state['timestep'])
 
     def updateTime(self, state, succ_state):
-        start_t = state.timestep + 1
-        t = max(start_t, succ_state.interval[0])
-        succ_state.timestep = t
+        start_t = state['timestep'] + 1
+        t = max(start_t, succ_state['interval'][0])
+        succ_state['timestep'] = t
        
     def reconstruct_path(self, state):
         path = []
 
         curr_state = state
-        t = curr_state.timestep
-        path.append(curr_state.loc)
+        curr_cfg = curr_state['cfg']
 
-        while(curr_state.loc != self.start_loc):
-            curr_state = curr_state.parent_state
+        t = curr_state['timestep']
+        path.append(curr_cfg.loc)
 
-            for i in range(curr_state.timestep, t):
-                path.append(curr_state.loc)
-            t = curr_state.timestep
+        while(curr_cfg.loc != self.start_loc):
+            curr_state = curr_cfg.parent_state
+            curr_cfg = curr_state['cfg']
+
+            for i in range(curr_state['timestep'], t):
+                path.append(curr_cfg.loc)
+            t = curr_state['timestep']
         
         return path[::-1]
  

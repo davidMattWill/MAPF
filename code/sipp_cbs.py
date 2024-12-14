@@ -2,8 +2,7 @@ import time as timer
 import heapq
 from single_agent_planner import compute_heuristics, get_location, get_sum_of_cost
 
-import sipp_planner
-
+import sipp_planner_alt as sipp_planner
 
 
 def detect_collision(path1, path2):
@@ -134,7 +133,7 @@ class SIPP_CBSSolver(object):
                 'collisions': []}
         # Find initial path for each agent
         for i in range(self.num_of_agents):  
-            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], {})
+            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], {})
             path = planner.get_path_sipp()
             if path is None:
                 raise BaseException('No solutions')
@@ -177,7 +176,7 @@ class SIPP_CBSSolver(object):
                         unsafe_list[const['loc']].append((const['timestep'], const['timestep']))
 
                 #Recalculates the path of 'agent' with the constraints
-                planner = sipp_planner.SIPP(self.my_map, self.starts[agent], self.goals[agent], unsafe_list)
+                planner = sipp_planner.SIPP(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[i], unsafe_list)
                 path = planner.get_path_sipp()
               
                 if path:

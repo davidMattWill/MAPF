@@ -152,7 +152,7 @@ def a_star(my_map, start_loc, goal_loc, h_values, agent, constraints):
         constraints - constraints defining where robot should or cannot go at each timestep
     """
     #defining max timestep here, but could be passed as an arg to a_star from CBS and prioritized
-    max_timestep = 30
+    max_timestep = 1000
 
     ##############################
     # Task 1.1: Extend the A* search to search in the space-time domain
