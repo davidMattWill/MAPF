@@ -114,12 +114,12 @@ if __name__ == '__main__':
         elif args.solver == "sipp_cbs":
             print("***Ruin SIPP CBS***")
             solver = SIPP_CBSSolver(my_map, starts, goals)
-            paths = solver.find_solution()
+            paths, time, num_expanded, num_generated = solver.find_solution()
         else:
             raise RuntimeError("Unknown solver!")
 
-        #cost = get_sum_of_cost(paths)
-        #result_file.write("{},{}\n".format(file, cost))
+        cost = get_sum_of_cost(paths)
+        #result_file.write("file name: {}, cost: {}, time: {}, num expanded:{}, num generated:{}\n".format(file, cost, time, num_expanded, num_generated))
 
 
         if not args.batch:

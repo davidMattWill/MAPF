@@ -26,8 +26,7 @@ class SIPP_PrioritizedSolver(object):
 
         unsafe_interval_list = {}
         for i in range(self.num_of_agents):
-            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], unsafe_interval_list)
-            path = planner.get_path_sipp()
+            path = sipp_planner.get_path_sipp(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], unsafe_interval_list)
 
             if path is None:
                 raise BaseException('No solutions')

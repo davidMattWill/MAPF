@@ -133,8 +133,7 @@ class SIPP_CBSSolver(object):
                 'collisions': []}
         # Find initial path for each agent
         for i in range(self.num_of_agents):  
-            planner = sipp_planner.SIPP(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], {})
-            path = planner.get_path_sipp()
+            path = sipp_planner.get_path_sipp(self.my_map, self.starts[i], self.goals[i], self.heuristics[i], {})
             if path is None:
                 raise BaseException('No solutions')
             root['paths'].append(path)
@@ -148,7 +147,7 @@ class SIPP_CBSSolver(object):
             P = self.pop_node()
             if len(P['collisions']) == 0:
                 self.print_results(P)
-                return P['paths']
+                return P['paths'], timer.time() - self.start_time, self.num_of_generated, self.num_of_expanded
 
             #Picks a collision. There are other ways to pick collisions, but picking the first one generally works. 
             first_collision = P['collisions'][0]
@@ -176,9 +175,7 @@ class SIPP_CBSSolver(object):
                         unsafe_list[const['loc']].append((const['timestep'], const['timestep']))
 
                 #Recalculates the path of 'agent' with the constraints
-                planner = sipp_planner.SIPP(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[i], unsafe_list)
-                path = planner.get_path_sipp()
-              
+                path = sipp_planner.get_path_sipp(self.my_map, self.starts[agent], self.goals[agent], self.heuristics[agent], unsafe_list)   
                 if path:
                     Q['paths'][agent] = path
                     Q['collisions'] = detect_collisions(Q['paths'])
@@ -186,7 +183,7 @@ class SIPP_CBSSolver(object):
                     self.push_node(Q)
 
         self.print_results(root)
-        return root['paths']
+        return root['paths'], 0, 0, 0
 
 
     def print_results(self, node):
@@ -196,3 +193,22 @@ class SIPP_CBSSolver(object):
         print("Sum of costs:    {}".format(get_sum_of_cost(node['paths'])))
         print("Expanded nodes:  {}".format(self.num_of_expanded))
         print("Generated nodes: {}".format(self.num_of_generated))
+
+'''
+unsafe_list = {}
+        for const in Q['constraints']:
+            if const['agent'] == agent:
+                if len(const['loc']) == 1:
+                    if const['loc'][0] not in unsafe_list:
+                        unsafe_list[const['loc'][0]] = []
+                    unsafe_list[const['loc'][0]].append((const['timestep'], const['timestep']))
+                else:
+                    if const['loc'][0] == Q['paths'][agent][const['timestep'] -1]:
+                        if const['loc'][1] not in unsafe_list:
+                            unsafe_list[const['loc'][1]] = []
+                        unsafe_list[const['loc'][1]].append((const['timestep'], const['timestep']))
+                    if const['loc'][1] == Q['paths'][agent][const['timestep'] -1]:
+                        if const['loc'][0] not in unsafe_list:
+                            unsafe_list[const['loc'][0]] = []
+                        unsafe_list[const['loc'][0]].append((const['timestep'], const['timestep']))
+'''
