@@ -197,10 +197,17 @@ class CBSSolver(object):
         #                standard_splitting function). Add a new child node to your open list for each constraint
         #           Ensure to create a copy of any objects that your child nodes might inherit
         while(len(self.open_list) > 0):
+            time = timer.time() - self.start_time
+            if time > 100:
+                print("went over max-time")
+                break
+
+          
+
             P = self.pop_node()
             if len(P['collisions']) == 0:
                 self.print_results(P)
-                return P['paths']
+                return P['paths'], timer.time() - self.start_time, self.num_of_generated, self.num_of_expanded
 
             #Alternatively, could pick the collision at random. Seems to work better in some cases
             #collision_index = random.randrange(0, len(P['collisions']))
@@ -248,7 +255,7 @@ class CBSSolver(object):
                     self.push_node(Q)
 
         self.print_results(root)
-        return root['paths']
+        return root['paths'], -1,-1,-1
 
 
     def print_results(self, node):

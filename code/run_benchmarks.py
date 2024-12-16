@@ -54,29 +54,21 @@ def parse_map_file(filename):
                 my_map[i-4][j] = True
     return my_map
 
-def parse_scenario_file(file_path, max_agents, scen_num):
+def parse_scenario_file(file_path):
     starts = []
     goals = []
 
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    ctr = 0
     for index, line in enumerate(lines):
         parts = line.split()
         if(index == 0):
             continue
-        #if(int(parts[0])) != scen_num:
-            #continue
-        if index > max_agents:
-            return starts, goals
-           
-            
         start_x, start_y = int(parts[5]), int(parts[4])
         goal_x, goal_y = int(parts[7]), int(parts[6])
         starts.append((start_x, start_y))
         goals.append((goal_x, goal_y))
-        ctr += 1
 
     return starts, goals
 
@@ -97,16 +89,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     map_file, scenario_file = args.instance
-    result_file = open("results.csv", "w", buffering=1)
+    
     
 
 
     print("***Import an instance***")
     #specifies the number of agents starting we're going to account for in the list
-    max_agents = 25
-    scen_num = 11
     my_map = parse_map_file(map_file)
-    starts, goals = parse_scenario_file(scenario_file, max_agents, scen_num)
+    starts, goals = parse_scenario_file(scenario_file)
     print(starts)
     print(goals)
 
@@ -121,13 +111,19 @@ if __name__ == '__main__':
             print("SHIT")
             exit()
 
-    #print_mapf_instance(my_map, starts, goals)
-
-    
+    print(len(starts))
     if args.solver == "CBS":
         print("***Run CBS***")
-        cbs = CBSSolver(my_map, starts, goals)
-        paths = cbs.find_solution(args.disjoint)
+        result_file = open("cbs_results.csv", "w", buffering=1)
+        for i in range(len(starts)):
+            
+            cbs = CBSSolver(my_map, starts[0:i], goals[0:i])
+            paths, time, num_expanded, num_generated = cbs.find_solution(args.disjoint)
+            cost = get_sum_of_cost(paths)
+            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
+            if time == -1:
+                break
+        result_file.close()
     elif args.solver == "Independent":
         print("***Run Independent***")
         solver = IndependentSolver(my_map, starts, goals)
@@ -136,30 +132,35 @@ if __name__ == '__main__':
         print("***Run Prioritized***")
         solver = PrioritizedPlanningSolver(my_map, starts, goals)
         paths = solver.find_solution() 
-    #Here we create an instance of the new solver type, and find a path
     elif args.solver == "sipp_prioritized":
         print("***Run SIPP Prioritized***")
         solver = SIPP_PrioritizedSolver(my_map, starts, goals)
         paths = solver.find_solution()
     elif args.solver == "sipp_cbs":
         print("***Ruin SIPP CBS***")
-        solver = SIPP_CBSSolver(my_map, starts, goals)
-        paths = solver.find_solution()
+        result_file = open("sipp_results.csv", "w", buffering=1)
+        for i in range(len(starts)):
+
+            solver = SIPP_CBSSolver(my_map, starts[0:i], goals[0:i])
+            paths, time, num_expanded, num_generated = solver.find_solution()
+            cost = get_sum_of_cost(paths)
+            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
+            if time  == -1:
+                break
+
+        result_file.close()
+            
     else:
         raise RuntimeError("Unknown solver!")
     
-
-
-    #cost = get_sum_of_cost(paths)
-    #result_file.write("{},{}\n".format(file, cost))
-
-
+    '''
     if not args.batch:
         print("***Test paths on a simulation***")
         animation = Animation(my_map, starts, goals, paths)
         #animation.save("output.mp4", 1.0)
         animation.show()
     result_file.close()
+    '''
 
     
     

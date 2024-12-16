@@ -144,6 +144,12 @@ class SIPP_CBSSolver(object):
 
      
         while(len(self.open_list) > 0):
+            #Going to put an upper bound on solution
+            time = timer.time() - self.start_time
+            if time > 100:
+                print("went over max-time")
+                break
+
             P = self.pop_node()
             if len(P['collisions']) == 0:
                 self.print_results(P)
@@ -183,7 +189,7 @@ class SIPP_CBSSolver(object):
                     self.push_node(Q)
 
         self.print_results(root)
-        return root['paths'], 0, 0, 0
+        return root['paths'], -1,-1,-1
 
 
     def print_results(self, node):

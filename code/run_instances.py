@@ -85,8 +85,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-
-    result_file = open("results.csv", "w", buffering=1)
+    if args.solver == 'sipp_cbs':
+        result_file = open("sipp_results.csv", "w", buffering=1)
+    if args.solver == 'CBS':
+        result_file = open("cbs_results.csv", "w", buffering=1)
 
     for file in sorted(glob.glob(args.instance)):
 
@@ -97,7 +99,7 @@ if __name__ == '__main__':
         if args.solver == "CBS":
             print("***Run CBS***")
             cbs = CBSSolver(my_map, starts, goals)
-            paths = cbs.find_solution(args.disjoint)
+            paths, time, num_expanded, num_generated  = cbs.find_solution(args.disjoint)
         elif args.solver == "Independent":
             print("***Run Independent***")
             solver = IndependentSolver(my_map, starts, goals)
@@ -119,12 +121,15 @@ if __name__ == '__main__':
             raise RuntimeError("Unknown solver!")
 
         cost = get_sum_of_cost(paths)
-        #result_file.write("file name: {}, cost: {}, time: {}, num expanded:{}, num generated:{}\n".format(file, cost, time, num_expanded, num_generated))
+        
+        if args.solver == 'sipp_cbs' or args.solver == 'CBS':
+            spl = file.split('_')
+            instance = int(spl[1].split('.')[0])
+            result_file.write("{}, {}, {}, {}, {}\n".format(instance, cost, time, num_expanded, num_generated))
 
 
         if not args.batch:
             print("***Test paths on a simulation***")
             animation = Animation(my_map, starts, goals, paths)
-            # animation.save("output.mp4", 1.0)
             animation.show()
     result_file.close()
