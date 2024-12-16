@@ -1,6 +1,6 @@
-import sipp_planner_alt as sipp_planner
+import sipp_planner
 import time as timer
-from single_agent_planner import compute_heuristics, get_location, get_sum_of_cost
+from single_agent_planner import compute_heuristics, get_sum_of_cost
 
 
 

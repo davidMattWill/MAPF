@@ -2,7 +2,7 @@ import time as timer
 import heapq
 from single_agent_planner import compute_heuristics, get_location, get_sum_of_cost
 
-import sipp_planner_alt as sipp_planner
+import sipp_planner
 
 
 def detect_collision(path1, path2):
@@ -189,7 +189,7 @@ class SIPP_CBSSolver(object):
                     self.push_node(Q)
 
         self.print_results(root)
-        return root['paths'], -1,-1,-1
+        return root['paths'], timer.time() - self.start_time, self.num_of_generated, self.num_of_expanded
 
 
     def print_results(self, node):
