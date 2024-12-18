@@ -85,11 +85,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.solver == 'sipp_cbs':
-        result_file = open("sipp_results.csv", "w", buffering=1)
-    if args.solver == 'CBS':
-        result_file = open("cbs_results.csv", "w", buffering=1)
-
     for file in sorted(glob.glob(args.instance)):
 
         print("***Import an instance***")
@@ -123,15 +118,7 @@ if __name__ == '__main__':
 
         cost = get_sum_of_cost(paths)
         
-        
-        if args.solver == 'sipp_cbs' or args.solver == 'CBS':
-            spl = file.split('_')
-            instance = int(spl[1].split('.')[0])
-            result_file.write("{}, {}, {}, {}, {}\n".format(instance, cost, time, num_expanded, num_generated))
-
-
         if not args.batch:
             print("***Test paths on a simulation***")
             animation = Animation(my_map, starts, goals, paths)
             animation.show()
-    result_file.close()

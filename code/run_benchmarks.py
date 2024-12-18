@@ -104,13 +104,14 @@ if __name__ == '__main__':
         print("***Run CBS***")
         result_file = open("cbs_results.csv", "w", buffering=1)
         for i in range(len(starts)):
-            
             cbs = CBSSolver(my_map, starts[0:i], goals[0:i])
             paths, time, num_expanded, num_generated = cbs.find_solution(args.disjoint)
             cost = get_sum_of_cost(paths)
-            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
             if time == -1:
                 break
+            
+            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
+            
         result_file.close()
     elif args.solver == "Independent":
         print("***Run Independent***")
@@ -132,9 +133,9 @@ if __name__ == '__main__':
             solver = SIPP_CBSSolver(my_map, starts[0:i], goals[0:i])
             paths, time, num_expanded, num_generated = solver.find_solution()
             cost = get_sum_of_cost(paths)
-            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
             if time  == -1:
                 break
+            result_file.write("{} {} {} {} {}\n".format(i+1, cost, time, num_expanded, num_generated))
 
         result_file.close()
             

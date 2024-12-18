@@ -13,7 +13,10 @@ Solvers include:
 
 
 To run benchmarks: python run_benchmarks.py --instance bench/(benchfolder)/(map-name).map bench/(benchfolder)/(scen).scen --solver (solverName)
-  - run_benchmarks does not visualize as larger maps might cause program to freeze with the visualizer. 
-
+  - run_benchmarks does not visualize as larger maps might cause program to freeze with the visualizer.
+  - benchmark requires the scen file and map to match, they are together in the same folders. 
+  - you can call: python plot_results.py afterword and it should work fine 
+  
+  -DATA FORMAT FOR CSV FILES per row: (number of agents) (sum of cost) (Execution time) (Node Generations) (Node expansions). run_benchmarks will stop when it goes over time
 
   
