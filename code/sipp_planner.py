@@ -5,7 +5,7 @@ import heapq
 
 class State_Map():
     ##############################
-    #           Class for managing existing states in the search tree. Maintained by a dictionary with key/val pair (loc, interval): State Object
+    #           Class for managing existing states in the search tree. Maintained by a dictionary with key/val pair (loc, interval): Dict(State data)
     #           Functions:
     #               get_state:   Checks if key already exists, if so returns the state, otherwise generates a new state with the passed values
     #               clear_state: If a state exists, removes it from the dict.         
@@ -29,12 +29,12 @@ class State_Map():
 
 class CFG_MAP():
     ##############################
-    #           Class for managing configurations. One alternative way would be to create a CFG Object for every (x,y) index at the start,
-    #           but this allows us to generate configurations as they're needed. The cfg_dict has key value pair (x,y): CFG Object.
-    #           The init function generates an empty dict, but we can also pass a list of unsafe intervals pre-defined, which is a dict with key value pair (x,y): [interval1, interval2...]
-    #           that specifies locations with unsafe intervals. In this case we'd retrieve the configuration at (x,y) with get_cfg and split its intervals according to the intervals of the unsafe list.
-    #           
-    #           The get_cfg function simply checks if a configuration already exists in the dict at (x,y). If it does it's returned, if it doesn't a default (0, inf) interval is generated and returned
+    #           Class for managing configurations indexed by (x,y) loc on the map. Maintained by a dictionary with key/val pair (loc): Dict(cfg data)
+    #           Functions:
+    #               init(): generates an empty dict, but we can also pass a list of unsafe intervals pre-defined, which is a dict with key value pair (x,y): [interval1, interval2...]
+    #                       that specifies locations with unsafe intervals. In this case we'd retrieve the configuration at (x,y) with get_cfg and split its intervals according to the intervals of the unsafe list.
+    #               get_cfg():  simply checks if a configuration already exists in the dict at (x,y). If it does it's returned, if it doesn't a default (0, inf) interval is generated and returned.
+    #               split():    splits a configurations interval list. For example, if (t, t+z) is passed against a default interval list (0, float('inf')) we return  (0, t-1), (t+z+1, float('inf')) 
     def __init__(self, unsafe_intervals = {}):
         self.cfg_dict = {}
         if unsafe_intervals:
@@ -98,6 +98,7 @@ def pop_pq(open_list):
     return curr_state
 
 def move(my_map, loc):
+    #Calculates valid move locations, cross references the map to make sure a move location is valid
     directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
     valid_moves = []
     for i in range(len(directions)):
@@ -109,13 +110,12 @@ def move(my_map, loc):
         valid_moves.append(new_loc)
     return valid_moves
 
-#def get_heuristic(loc, goal_loc):
-    #return math.sqrt(pow(goal_loc[0] - loc[0], 2) + pow(goal_loc[1] - loc[1], 2))
-
+#Returns the heuristic value for loc, calculates from the single_agent_planner function
 def get_heuristic(loc, h_vals):
     return h_vals[loc]
     
 def get_path_sipp(my_map, start_loc, goal_loc, h_vals, unsafe_interval_list):
+    #A* with SI, implements the required functionality of the algorithm psuedocode described in the paper
     open_list = []
 
     cfg_map = CFG_MAP(unsafe_interval_list)
@@ -127,9 +127,6 @@ def get_path_sipp(my_map, start_loc, goal_loc, h_vals, unsafe_interval_list):
     root_state['g'] = 0
     root_state['f'] = get_heuristic(start_loc, h_vals)
     push_pq(open_list, (root_state['f'], root_state['interval'], start_loc, root_state))
-    
-
-
     while len(open_list) > 0:
         curr_state = pop_pq(open_list)
         
@@ -149,6 +146,7 @@ def get_path_sipp(my_map, start_loc, goal_loc, h_vals, unsafe_interval_list):
 
     return None
 
+#getSuccessor(s) function described in the paper. Makes sure potential successors intervals overlap with the parent successors interval
 def get_successors(my_map, cfg_map, state_map, state):
     successors = []
     valid_moves = move(my_map, state['loc'])
@@ -168,15 +166,15 @@ def get_successors(my_map, cfg_map, state_map, state):
             succ = state_map.get_state(mov, t, interval)
             successors.append(succ)
     return successors
-
+#gets the diff between parent and child arrival time to add to the edge cost
 def get_cost(state, succ_state):
     return abs(succ_state['timestep'] - state['timestep'])
-
+#relaxes arrival time if a shorter path is found
 def updateTime(state, succ_state):
     start_t = state['timestep'] + 1
     t = max(start_t, succ_state['interval'][0])
     succ_state['timestep'] = t
-    
+#reconstructs and returns the path
 def reconstruct_path(state, start_loc):
     path = []
 

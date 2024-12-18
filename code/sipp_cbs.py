@@ -189,7 +189,7 @@ class SIPP_CBSSolver(object):
                     self.push_node(Q)
 
         self.print_results(root)
-        return root['paths'], timer.time() - self.start_time, self.num_of_generated, self.num_of_expanded
+        return root['paths'], -1,-1,-1
 
 
     def print_results(self, node):

@@ -36,7 +36,7 @@ def print_locations(my_map, locations):
         to_print += '\n'
     print(to_print)
 
-
+#Parses the .map file
 def parse_map_file(filename):
     my_map = []
 
@@ -53,7 +53,7 @@ def parse_map_file(filename):
             if lines[i][j] == '@':
                 my_map[i-4][j] = True
     return my_map
-
+#parses the .scen file
 def parse_scenario_file(file_path):
     starts = []
     goals = []
@@ -91,8 +91,6 @@ if __name__ == '__main__':
     map_file, scenario_file = args.instance
     
     
-
-
     print("***Import an instance***")
     #specifies the number of agents starting we're going to account for in the list
     my_map = parse_map_file(map_file)
@@ -100,18 +98,8 @@ if __name__ == '__main__':
     print(starts)
     print(goals)
 
-    #For testing
-    for start in starts:
-        if my_map[start[0]][start[1]]:
-            print("SHIT")
-            exit()
-    for goal in goals:
-        if my_map[goal[0]][goal[1]]:
-            print(goal)
-            print("SHIT")
-            exit()
+    #IF CBS OR sipp_cbs is called we run a loop for incrementing number of agents until we retrieve a solution that has crossed the time threshold. Data is written to file
 
-    print(len(starts))
     if args.solver == "CBS":
         print("***Run CBS***")
         result_file = open("cbs_results.csv", "w", buffering=1)
@@ -153,14 +141,14 @@ if __name__ == '__main__':
     else:
         raise RuntimeError("Unknown solver!")
     
-    '''
-    if not args.batch:
+    #print(paths)
+
+    if not args.batch and not args.solver == "sipp_cbs" and not args.solver == "CBS":
         print("***Test paths on a simulation***")
         animation = Animation(my_map, starts, goals, paths)
-        #animation.save("output.mp4", 1.0)
         animation.show()
     result_file.close()
-    '''
+    
 
     
     

@@ -113,6 +113,7 @@ if __name__ == '__main__':
             print("***Run SIPP Prioritized***")
             solver = SIPP_PrioritizedSolver(my_map, starts, goals)
             paths = solver.find_solution()
+        #RUNS A sipp_prioritized instance on a single set of starts/goals
         elif args.solver == "sipp_cbs":
             print("***Ruin SIPP CBS***")
             solver = SIPP_CBSSolver(my_map, starts, goals)
@@ -121,6 +122,7 @@ if __name__ == '__main__':
             raise RuntimeError("Unknown solver!")
 
         cost = get_sum_of_cost(paths)
+        
         
         if args.solver == 'sipp_cbs' or args.solver == 'CBS':
             spl = file.split('_')
